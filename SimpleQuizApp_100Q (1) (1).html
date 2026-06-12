@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simple Quiz App – 100 Questions</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1a1a2e,#16213e,#0f3460);font-family:'Segoe UI',system-ui,sans-serif;padding:16px}
+.card{background:#fff;border-radius:20px;padding:32px 28px;width:100%;max-width:480px;box-shadow:0 24px 64px rgba(0,0,0,.35)}
+.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.badge{background:#e8f0fe;color:#3b5bdb;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:4px 12px;border-radius:20px}
+.score-badge{background:#f0fdf4;color:#166534;font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px}
+.progress-bar{width:100%;height:6px;background:#e9ecef;border-radius:4px;margin-bottom:20px;overflow:hidden}
+.progress-fill{height:100%;background:#3b5bdb;border-radius:4px;transition:width .4s ease}
+.qnum{font-size:12px;color:#868e96;margin-bottom:6px;font-weight:600}
+h1{font-size:18px;font-weight:700;color:#1a1a2e;line-height:1.5;margin-bottom:22px;min-height:56px}
+.options{display:flex;flex-direction:column;gap:10px;margin-bottom:22px}
+.option{display:flex;align-items:center;gap:12px;padding:12px 16px;border:2px solid #e9ecef;border-radius:12px;cursor:pointer;transition:border-color .15s,background .15s,transform .1s;user-select:none}
+.option:hover:not(.disabled){border-color:#748ffc;background:#f8f9ff;transform:translateY(-1px)}
+.option.selected{border-color:#3b5bdb;background:#edf2ff}
+.option.correct{border-color:#2f9e44;background:#ebfbee}
+.option.wrong{border-color:#e03131;background:#fff5f5}
+.option.disabled{cursor:default}
+.radio-circle{width:18px;height:18px;border-radius:50%;border:2px solid #ced4da;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.option.selected .radio-circle,.option.correct .radio-circle{border-color:#3b5bdb}
+.option.wrong .radio-circle{border-color:#e03131}
+.radio-dot{width:9px;height:9px;border-radius:50%;background:#3b5bdb;display:none}
+.option.selected .radio-dot,.option.correct .radio-dot,.option.wrong .radio-dot{display:block}
+.option.wrong .radio-dot{background:#e03131}
+.option-text{font-size:15px;color:#343a40;font-weight:500}
+.correct-label{font-size:12px;color:#2f9e44;font-weight:600;margin-left:auto}
+.buttons{display:flex;gap:10px}
+button{flex:1;padding:12px;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;transition:opacity .15s,transform .1s}
+button:active{transform:scale(.97)}
+#btnSubmit{background:#3b5bdb;color:#fff}
+#btnSubmit:disabled{background:#adb5bd;cursor:not-allowed}
+#btnNext{background:#2f9e44;color:#fff;display:none}
+#btnReset{background:#f1f3f5;color:#495057}
+#btnReset:hover{background:#e9ecef}
+#result{margin-top:18px;padding:12px 16px;border-radius:12px;font-size:15px;font-weight:600;text-align:center;min-height:48px;display:flex;align-items:center;justify-content:center;transition:all .2s}
+#result.empty{background:transparent}
+#result.neutral{background:#fff3cd;color:#856404}
+#result.correct{background:#d1fae5;color:#065f46}
+#result.incorrect{background:#fee2e2;color:#991b1b}
+.final-screen{text-align:center;padding:10px 0}
+.final-score{font-size:48px;font-weight:800;color:#3b5bdb;margin:12px 0 4px}
+.final-sub{font-size:14px;color:#868e96;margin-bottom:20px}
+.grade-badge{display:inline-block;padding:8px 24px;border-radius:20px;font-size:15px;font-weight:700;margin-bottom:24px}
+.cat-select{width:100%;padding:10px 14px;border-radius:10px;border:2px solid #e9ecef;font-size:14px;color:#343a40;margin-bottom:16px;background:#fff}
+</style>
+</head>
+<body>
+<div class="card" id="app"></div>
+<script>
+const ALL_QUESTIONS = [
+  // Geography (1-15)
+  {q:"What is the capital of France?",opts:["Paris","London","Berlin","Madrid"],ans:"Paris",cat:"Geography"},
+  {q:"What is the capital of Japan?",opts:["Beijing","Seoul","Tokyo","Bangkok"],ans:"Tokyo",cat:"Geography"},
+  {q:"Which is the largest continent?",opts:["Africa","Asia","Europe","North America"],ans:"Asia",cat:"Geography"},
+  {q:"What is the longest river in the world?",opts:["Amazon","Nile","Yangtze","Mississippi"],ans:"Nile",cat:"Geography"},
+  {q:"Which country has the most natural lakes?",opts:["Russia","Brazil","USA","Canada"],ans:"Canada",cat:"Geography"},
+  {q:"What is the smallest country in the world?",opts:["Monaco","San Marino","Vatican City","Liechtenstein"],ans:"Vatican City",cat:"Geography"},
+  {q:"Mount Everest is located in which mountain range?",opts:["Andes","Alps","Himalayas","Rockies"],ans:"Himalayas",cat:"Geography"},
+  {q:"Which ocean is the largest?",opts:["Atlantic","Indian","Arctic","Pacific"],ans:"Pacific",cat:"Geography"},
+  {q:"What is the capital of Australia?",opts:["Sydney","Melbourne","Canberra","Brisbane"],ans:"Canberra",cat:"Geography"},
+  {q:"Which African country has the most pyramids?",opts:["Egypt","Sudan","Libya","Ethiopia"],ans:"Sudan",cat:"Geography"},
+  {q:"What is the currency of Japan?",opts:["Yuan","Won","Yen","Rupee"],ans:"Yen",cat:"Geography"},
+  {q:"Which country is the Sahara Desert located in mostly?",opts:["Algeria","Egypt","Libya","Sudan"],ans:"Algeria",cat:"Geography"},
+  {q:"The Amazon River flows through which continent?",opts:["Africa","Asia","South America","North America"],ans:"South America",cat:"Geography"},
+  {q:"Which is the capital of Canada?",opts:["Toronto","Vancouver","Montreal","Ottawa"],ans:"Ottawa",cat:"Geography"},
+  {q:"What is the largest desert in the world?",opts:["Gobi","Sahara","Arabian","Antarctic"],ans:"Antarctic",cat:"Geography"},
+  // Science (16-35)
+  {q:"What is the chemical symbol for water?",opts:["WO","H2O","HO2","W"],ans:"H2O",cat:"Science"},
+  {q:"How many planets are in our solar system?",opts:["7","8","9","10"],ans:"8",cat:"Science"},
+  {q:"What gas do plants absorb from the atmosphere?",opts:["Oxygen","Nitrogen","Carbon Dioxide","Hydrogen"],ans:"Carbon Dioxide",cat:"Science"},
+  {q:"What is the speed of light (approx.)?",opts:["300,000 km/s","150,000 km/s","500,000 km/s","100,000 km/s"],ans:"300,000 km/s",cat:"Science"},
+  {q:"DNA stands for?",opts:["Deoxyribonucleic Acid","Diribonucleic Acid","Deoxyribonitrogen Acid","None"],ans:"Deoxyribonucleic Acid",cat:"Science"},
+  {q:"What is the powerhouse of the cell?",opts:["Nucleus","Ribosome","Mitochondria","Golgi Apparatus"],ans:"Mitochondria",cat:"Science"},
+  {q:"Which planet is known as the Red Planet?",opts:["Venus","Jupiter","Saturn","Mars"],ans:"Mars",cat:"Science"},
+  {q:"What is the atomic number of Carbon?",opts:["4","6","8","12"],ans:"6",cat:"Science"},
+  {q:"What force keeps planets in orbit?",opts:["Magnetism","Friction","Gravity","Electrostatics"],ans:"Gravity",cat:"Science"},
+  {q:"Which blood type is the universal donor?",opts:["A+","B-","AB+","O-"],ans:"O-",cat:"Science"},
+  {q:"What is the boiling point of water at sea level?",opts:["90°C","95°C","100°C","105°C"],ans:"100°C",cat:"Science"},
+  {q:"Which element is represented by 'Au'?",opts:["Silver","Copper","Gold","Iron"],ans:"Gold",cat:"Science"},
+  {q:"How many bones are in the adult human body?",opts:["196","206","216","226"],ans:"206",cat:"Science"},
+  {q:"What is the most abundant gas in Earth's atmosphere?",opts:["Oxygen","Carbon Dioxide","Argon","Nitrogen"],ans:"Nitrogen",cat:"Science"},
+  {q:"What is E=mc² associated with?",opts:["Newton","Bohr","Einstein","Hawking"],ans:"Einstein",cat:"Science"},
+  {q:"Which organ produces insulin?",opts:["Liver","Kidney","Pancreas","Stomach"],ans:"Pancreas",cat:"Science"},
+  {q:"Sound travels fastest in which medium?",opts:["Air","Water","Vacuum","Solids"],ans:"Solids",cat:"Science"},
+  {q:"What is the symbol for iron on the periodic table?",opts:["Ir","In","Fr","Fe"],ans:"Fe",cat:"Science"},
+  {q:"Which vitamin is produced when skin is exposed to sunlight?",opts:["Vitamin A","Vitamin B","Vitamin C","Vitamin D"],ans:"Vitamin D",cat:"Science"},
+  {q:"What is the process by which plants make food?",opts:["Respiration","Photosynthesis","Digestion","Transpiration"],ans:"Photosynthesis",cat:"Science"},
+  // History (36-50)
+  {q:"Who was the first President of the United States?",opts:["Thomas Jefferson","John Adams","George Washington","Benjamin Franklin"],ans:"George Washington",cat:"History"},
+  {q:"In which year did World War II end?",opts:["1943","1944","1945","1946"],ans:"1945",cat:"History"},
+  {q:"The Great Wall of China was primarily built during which dynasty?",opts:["Han","Tang","Ming","Qin"],ans:"Ming",cat:"History"},
+  {q:"Who painted the Mona Lisa?",opts:["Michelangelo","Raphael","Leonardo da Vinci","Caravaggio"],ans:"Leonardo da Vinci",cat:"History"},
+  {q:"In which year did the Berlin Wall fall?",opts:["1987","1988","1989","1990"],ans:"1989",cat:"History"},
+  {q:"Who was the first person to walk on the Moon?",opts:["Buzz Aldrin","Yuri Gagarin","Neil Armstrong","Alan Shepard"],ans:"Neil Armstrong",cat:"History"},
+  {q:"Which empire was ruled by Julius Caesar?",opts:["Greek","Roman","Ottoman","Persian"],ans:"Roman",cat:"History"},
+  {q:"The French Revolution began in which year?",opts:["1776","1789","1799","1804"],ans:"1789",cat:"History"},
+  {q:"Who wrote the play 'Romeo and Juliet'?",opts:["Charles Dickens","Jane Austen","William Shakespeare","Leo Tolstoy"],ans:"William Shakespeare",cat:"History"},
+  {q:"Which country was the first to use paper money?",opts:["Egypt","India","China","Rome"],ans:"China",cat:"History"},
+  {q:"The Titanic sank in which year?",opts:["1910","1911","1912","1913"],ans:"1912",cat:"History"},
+  {q:"Who discovered penicillin?",opts:["Marie Curie","Louis Pasteur","Alexander Fleming","Joseph Lister"],ans:"Alexander Fleming",cat:"History"},
+  {q:"Which ancient wonder was located in Alexandria?",opts:["Colossus of Rhodes","Lighthouse","Hanging Gardens","Temple of Artemis"],ans:"Lighthouse",cat:"History"},
+  {q:"Who was the first female Prime Minister of the UK?",opts:["Theresa May","Angela Merkel","Margaret Thatcher","Indira Gandhi"],ans:"Margaret Thatcher",cat:"History"},
+  {q:"In which city was the Eiffel Tower built?",opts:["Lyon","Nice","Bordeaux","Paris"],ans:"Paris",cat:"History"},
+  // Math (51-65)
+  {q:"What is 12 × 12?",opts:["132","144","154","124"],ans:"144",cat:"Math"},
+  {q:"What is the value of π (pi) to 2 decimal places?",opts:["3.12","3.14","3.16","3.18"],ans:"3.14",cat:"Math"},
+  {q:"What is the square root of 144?",opts:["11","12","13","14"],ans:"12",cat:"Math"},
+  {q:"How many sides does a hexagon have?",opts:["5","6","7","8"],ans:"6",cat:"Math"},
+  {q:"What is 15% of 200?",opts:["25","30","35","40"],ans:"30",cat:"Math"},
+  {q:"What is 2 to the power of 10?",opts:["512","1024","2048","256"],ans:"1024",cat:"Math"},
+  {q:"What is the sum of angles in a triangle?",opts:["90°","120°","180°","360°"],ans:"180°",cat:"Math"},
+  {q:"What is the next prime number after 7?",opts:["8","9","10","11"],ans:"11",cat:"Math"},
+  {q:"How many degrees are in a full circle?",opts:["180°","270°","360°","90°"],ans:"360°",cat:"Math"},
+  {q:"What is 25 × 4?",opts:["90","95","100","105"],ans:"100",cat:"Math"},
+  {q:"What is the cube of 3?",opts:["6","9","27","81"],ans:"27",cat:"Math"},
+  {q:"What is the Roman numeral for 50?",opts:["X","L","C","D"],ans:"L",cat:"Math"},
+  {q:"If x + 5 = 12, what is x?",opts:["5","6","7","8"],ans:"7",cat:"Math"},
+  {q:"What is the LCM of 4 and 6?",opts:["8","10","12","14"],ans:"12",cat:"Math"},
+  {q:"What is 1000 ÷ 25?",opts:["35","40","45","50"],ans:"40",cat:"Math"},
+  // Technology (66-80)
+  {q:"What does HTML stand for?",opts:["HyperText Markup Language","HighText Machine Language","Hyper Transfer Markup Language","None"],ans:"HyperText Markup Language",cat:"Technology"},
+  {q:"Who co-founded Apple Inc.?",opts:["Bill Gates","Elon Musk","Steve Jobs","Jeff Bezos"],ans:"Steve Jobs",cat:"Technology"},
+  {q:"What does CPU stand for?",opts:["Central Processing Unit","Computer Personal Unit","Central Program Utility","None"],ans:"Central Processing Unit",cat:"Technology"},
+  {q:"Which programming language is known as the 'language of the web'?",opts:["Python","Java","JavaScript","C++"],ans:"JavaScript",cat:"Technology"},
+  {q:"What does URL stand for?",opts:["Universal Resource Locator","Uniform Resource Locator","Unified Record Locator","None"],ans:"Uniform Resource Locator",cat:"Technology"},
+  {q:"Who invented the World Wide Web?",opts:["Bill Gates","Tim Berners-Lee","Steve Jobs","Vint Cerf"],ans:"Tim Berners-Lee",cat:"Technology"},
+  {q:"What is the most widely used operating system?",opts:["macOS","Linux","Windows","Android"],ans:"Windows",cat:"Technology"},
+  {q:"Which company developed Android?",opts:["Apple","Microsoft","Google","Samsung"],ans:"Google",cat:"Technology"},
+  {q:"What does RAM stand for?",opts:["Random Access Memory","Read Access Memory","Run All Memory","None"],ans:"Random Access Memory",cat:"Technology"},
+  {q:"In binary, what does '1010' equal in decimal?",opts:["8","9","10","11"],ans:"10",cat:"Technology"},
+  {q:"What language is primarily used for Android app development?",opts:["Swift","Kotlin","Python","Ruby"],ans:"Kotlin",cat:"Technology"},
+  {q:"What does 'HTTP' stand for?",opts:["HyperText Transfer Protocol","HighText Transfer Protocol","HyperTransfer Text Protocol","None"],ans:"HyperText Transfer Protocol",cat:"Technology"},
+  {q:"Which company makes the iPhone?",opts:["Samsung","Sony","Apple","Google"],ans:"Apple",cat:"Technology"},
+  {q:"What is the shortcut to copy on most computers?",opts:["Ctrl+X","Ctrl+V","Ctrl+C","Ctrl+Z"],ans:"Ctrl+C",cat:"Technology"},
+  {q:"What does 'AI' stand for?",opts:["Automatic Intelligence","Artificial Intelligence","Advanced Interface","None"],ans:"Artificial Intelligence",cat:"Technology"},
+  // Sports (81-90)
+  {q:"How many players are on a basketball team on the court?",opts:["4","5","6","7"],ans:"5",cat:"Sports"},
+  {q:"In which sport is the term 'love' used for zero?",opts:["Cricket","Tennis","Badminton","Golf"],ans:"Tennis",cat:"Sports"},
+  {q:"How many rings are on the Olympic flag?",opts:["4","5","6","7"],ans:"5",cat:"Sports"},
+  {q:"Which country invented football (soccer)?",opts:["Brazil","Germany","France","England"],ans:"England",cat:"Sports"},
+  {q:"How long is a standard marathon in km?",opts:["40.195","41.195","42.195","43.195"],ans:"42.195",cat:"Sports"},
+  {q:"In cricket, how many balls are in an over?",opts:["4","5","6","8"],ans:"6",cat:"Sports"},
+  {q:"Which sport uses a shuttlecock?",opts:["Tennis","Squash","Badminton","Table Tennis"],ans:"Badminton",cat:"Sports"},
+  {q:"How many players are in a volleyball team on court?",opts:["5","6","7","8"],ans:"6",cat:"Sports"},
+  {q:"In which sport would you perform a 'slam dunk'?",opts:["Football","Volleyball","Basketball","Hockey"],ans:"Basketball",cat:"Sports"},
+  {q:"What color is the center circle on an archery target?",opts:["Red","Blue","Black","Yellow"],ans:"Yellow",cat:"Sports"},
+  // General Knowledge (91-100)
+  {q:"How many colors are in a rainbow?",opts:["5","6","7","8"],ans:"7",cat:"General"},
+  {q:"Which planet is closest to the Sun?",opts:["Venus","Earth","Mars","Mercury"],ans:"Mercury",cat:"General"},
+  {q:"What is the hardest natural substance on Earth?",opts:["Gold","Iron","Diamond","Platinum"],ans:"Diamond",cat:"General"},
+  {q:"How many continents are there on Earth?",opts:["5","6","7","8"],ans:"7",cat:"General"},
+  {q:"What is the largest mammal in the world?",opts:["Elephant","Giraffe","Blue Whale","Great White Shark"],ans:"Blue Whale",cat:"General"},
+  {q:"Which gas is most abundant in Earth's atmosphere?",opts:["Oxygen","Argon","Nitrogen","Carbon Dioxide"],ans:"Nitrogen",cat:"General"},
+  {q:"How many hours are in a week?",opts:["148","162","168","172"],ans:"168",cat:"General"},
+  {q:"What is the most spoken language in the world?",opts:["English","Spanish","Hindi","Mandarin Chinese"],ans:"Mandarin Chinese",cat:"General"},
+  {q:"Which metal is liquid at room temperature?",opts:["Lead","Mercury","Tin","Bismuth"],ans:"Mercury",cat:"General"},
+  {q:"What is the largest organ in the human body?",opts:["Liver","Brain","Heart","Skin"],ans:"Skin",cat:"General"}
+];
+
+const CATEGORIES = ["All", ...new Set(ALL_QUESTIONS.map(q => q.cat))];
+let questions = [...ALL_QUESTIONS];
+let current = 0, selected = null, score = 0, submitted = false, answered = [];
+
+function getQuestions(cat) {
+  return cat === "All" ? [...ALL_QUESTIONS] : ALL_QUESTIONS.filter(q => q.cat === cat);
+}
+
+function shuffle(arr) {
+  for(let i = arr.length-1; i>0; i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}
+  return arr;
+}
+
+function startQuiz(cat) {
+  questions = shuffle(getQuestions(cat));
+  current = 0; selected = null; score = 0; submitted = false; answered = [];
+  render();
+}
+
+function render() {
+  if (current >= questions.length) { renderFinal(); return; }
+  const q = questions[current];
+  const pct = ((current)/questions.length*100).toFixed(0);
+  document.getElementById('app').innerHTML = `
+    <div class="header">
+      <span class="badge">${q.cat}</span>
+      <span class="score-badge">Score: ${score}/${current}</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+    <div class="qnum">Question ${current+1} of ${questions.length}</div>
+    <h1>${q.q}</h1>
+    <div class="options" id="opts">
+      ${q.opts.map(o=>`<div class="option" data-val="${o}" onclick="pick(this)">\
+        <div class="radio-circle"><div class="radio-dot"></div></div>\
+        <span class="option-text">${o}</span></div>`).join('')}
+    </div>
+    <div class="buttons">
+      <button id="btnSubmit" onclick="submit()" ${selected?'':'disabled'}>Submit</button>
+      <button id="btnNext" onclick="next()">Next &rarr;</button>
+      <button id="btnReset" onclick="initMenu()">Menu</button>
+    </div>
+    <div id="result" class="empty"></div>`;
+}
+
+function pick(el) {
+  if (submitted) return;
+  document.querySelectorAll('.option').forEach(o=>o.classList.remove('selected'));
+  el.classList.add('selected');
+  selected = el.dataset.val;
+  document.getElementById('btnSubmit').disabled = false;
+}
+
+function submit() {
+  if (!selected) return;
+  const q = questions[current];
+  submitted = true;
+  const res = document.getElementById('result');
+  const opts = document.querySelectorAll('.option');
+  opts.forEach(o => {
+    o.classList.add('disabled');
+    if (o.dataset.val === q.ans) {
+      o.classList.add('correct');
+      o.innerHTML += '<span class="correct-label">✓ Correct</span>';
+    } else if (o.dataset.val === selected && selected !== q.ans) {
+      o.classList.add('wrong');
+    }
+  });
+  const isCorrect = selected === q.ans;
+  if (isCorrect) score++;
+  res.textContent = isCorrect ? "✅ Correct!" : `❌ Wrong! Answer: ${q.ans}`;
+  res.className = isCorrect ? "correct" : "incorrect";
+  document.getElementById('btnSubmit').style.display = 'none';
+  document.getElementById('btnNext').style.display = 'flex';
+  submitted = true;
+}
+
+function next() {
+  current++; selected = null; submitted = false; render();
+}
+
+function renderFinal() {
+  const pct = Math.round((score/questions.length)*100);
+  let grade='', gc='';
+  if(pct>=90){grade='Excellent!';gc='background:#d1fae5;color:#065f46'}
+  else if(pct>=70){grade='Good Job!';gc='background:#dbeafe;color:#1e40af'}
+  else if(pct>=50){grade='Keep Practicing';gc='background:#fef9c3;color:#854d0e'}
+  else{grade='Need More Study';gc='background:#fee2e2;color:#991b1b'}
+  document.getElementById('app').innerHTML=`
+    <div class="final-screen">
+      <div class="badge" style="margin-bottom:16px">Quiz Complete</div>
+      <div class="final-score">${score}/${questions.length}</div>
+      <div class="final-sub">You scored ${pct}%</div>
+      <div class="grade-badge" style="${gc}">${grade}</div>
+      <div class="buttons">
+        <button id="btnSubmit" onclick="startQuiz(document.querySelector('.cat-select')?.value||'All')" style="display:flex">Play Again</button>
+        <button id="btnReset" onclick="initMenu()" style="display:flex">Menu</button>
+      </div>
+    </div>`;
+}
+
+function initMenu() {
+  const cats = CATEGORIES;
+  document.getElementById('app').innerHTML = `
+    <div style="text-align:center;margin-bottom:24px">
+      <div class="badge" style="display:inline-block;margin-bottom:12px">100 Questions</div>
+      <h1 style="min-height:auto;margin-bottom:6px">Simple Quiz App</h1>
+      <p style="font-size:14px;color:#868e96">Choose a category and test your knowledge!</p>
+    </div>
+    <label style="font-size:13px;color:#495057;font-weight:600;display:block;margin-bottom:6px">Select Category</label>
+    <select class="cat-select" id="catSel">
+      ${cats.map(c=>`<option value="${c}">${c} ${c==='All'?'('+ALL_QUESTIONS.length+')':'('+ALL_QUESTIONS.filter(q=>q.cat===c).length+')'}</option>`).join('')}
+    </select>
+    <button id="btnSubmit" onclick="startQuiz(document.getElementById('catSel').value)" style="width:100%;margin-bottom:10px;padding:14px;font-size:16px">Start Quiz</button>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px">
+      ${CATEGORIES.filter(c=>c!=='All').map(c=>`
+        <div onclick="startQuiz('${c}')" style="padding:12px;border:2px solid #e9ecef;border-radius:12px;cursor:pointer;text-align:center;transition:border-color .15s" onmouseover="this.style.borderColor='#748ffc'" onmouseout="this.style.borderColor='#e9ecef'">
+          <div style="font-weight:700;font-size:14px;color:#1a1a2e">${c}</div>
+          <div style="font-size:12px;color:#868e96">${ALL_QUESTIONS.filter(q=>q.cat===c).length} questions</div>
+        </div>`).join('')}
+    </div>`;
+}
+
+initMenu();
+</script>
+</body>
+</html>
